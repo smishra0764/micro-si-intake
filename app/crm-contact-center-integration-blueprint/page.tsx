@@ -11,7 +11,7 @@ export default function CrmContactCenterIntegrationBlueprintPage() {
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-100 px-6 py-12">
       <div className="mx-auto w-full max-w-3xl space-y-10">
-        <header className="space-y-3">
+        <header className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4">
           <p className="text-xs uppercase tracking-[0.2em] text-neutral-400">Blueprint Guide</p>
           <h1 className="text-3xl font-semibold">
             CRM \u2194 Contact Center Integration Blueprint
@@ -22,11 +22,25 @@ export default function CrmContactCenterIntegrationBlueprintPage() {
             connections are built.
           </p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
-            <span className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1">
+            <span className="rounded-full border border-neutral-800 bg-neutral-950/70 px-3 py-1">
               Blueprint-first approach
             </span>
-            <span className="rounded-full border border-neutral-800 bg-neutral-900 px-3 py-1">
+            <span className="rounded-full border border-neutral-800 bg-neutral-950/70 px-3 py-1">
               No production connections
+            </span>
+            <span className="rounded-full border border-neutral-800 bg-neutral-950/70 px-3 py-1">
+              Decisions before APIs
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-400">
+            <span className="rounded-lg border border-neutral-800 bg-neutral-950/70 px-3 py-2">
+              Matching + dedup rules
+            </span>
+            <span className="rounded-lg border border-neutral-800 bg-neutral-950/70 px-3 py-2">
+              Ownership and context placement
+            </span>
+            <span className="rounded-lg border border-neutral-800 bg-neutral-950/70 px-3 py-2">
+              Reliability + security posture
             </span>
           </div>
         </header>
@@ -133,9 +147,12 @@ export default function CrmContactCenterIntegrationBlueprintPage() {
         <section className="flex flex-wrap items-center gap-4">
           <Link
             href="/"
-            className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-100 px-5 py-2 text-sm font-semibold text-neutral-900 shadow-[0_8px_30px_rgba(0,0,0,0.45)] transition hover:opacity-90"
           >
             Start the intake
+            <span aria-hidden className="text-neutral-600">
+              →
+            </span>
           </Link>
           <Link href="/" className="text-sm text-neutral-400 hover:text-neutral-200">
             Back to the intake overview

@@ -338,7 +338,16 @@ export default function Page() {
           </div>
         </header>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <Link
+            href="/crm-contact-center-integration-blueprint"
+            className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300 hover:text-neutral-100 hover:border-neutral-500"
+          >
+            Guide
+            <span aria-hidden className="text-neutral-500">
+              →
+            </span>
+          </Link>
           {steps.map((s, idx) => (
             <span
               key={s.title}
