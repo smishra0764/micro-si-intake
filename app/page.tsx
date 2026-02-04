@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -320,9 +321,20 @@ export default function Page() {
             Evaluation-only prototype. This intake generates a normalized JSON blueprint for the flow:
             <span className="font-medium"> Contact center interaction accepted → CRM activity + context injection</span>.
           </p>
-          <div className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-900">
-            <span className="font-medium">Mode:</span>
-            <span>feedback_only</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/crm-contact-center-integration-blueprint"
+              className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/70 px-4 py-2 text-xs font-medium text-neutral-100 shadow-[0_0_0_1px_rgba(255,255,255,0.04)] transition hover:border-neutral-500 hover:bg-neutral-900"
+            >
+              Read the guide
+              <span aria-hidden className="text-neutral-400">
+                →
+              </span>
+            </Link>
+            <div className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-900">
+              <span className="font-medium">Mode:</span>
+              <span>feedback_only</span>
+            </div>
           </div>
         </header>
 
