@@ -58,6 +58,9 @@ export default function CrmContactCenterIntegrationDesignPage() {
             The blueprint-first approach is designed for RevOps, CX, and engineering teams to align
             on scope and constraints before implementation.
           </p>
+          <p className="text-sm text-neutral-300">
+            The resulting blueprint is intentionally structured to be both human-readable and AI-consumable, enabling automated validation, documentation generation, or AI-assisted implementation workflows while keeping human oversight in the decision process.
+          </p>
         </section>
 
         <section className="space-y-4">

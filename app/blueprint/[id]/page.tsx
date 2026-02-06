@@ -341,6 +341,13 @@ export default function BlueprintPage({ params }: { params: Promise<{ id: string
           </details>
         </section>
 
+        <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-2">
+          <h2 className="text-lg font-semibold">AI-ready structured output</h2>
+          <p className="text-sm text-neutral-300">
+            The generated blueprint is produced as structured data so it can be reviewed by humans and consumed by AI-assisted tools or automation systems during implementation. This allows integration logic, mappings, and operational guarantees to be validated or translated into implementation workflows without manual reinterpretation.
+          </p>
+        </section>
+
         <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4">
           <h2 className="text-lg font-semibold">Help improve this prototype</h2>
           <p className="text-sm text-neutral-300">

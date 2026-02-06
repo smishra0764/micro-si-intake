@@ -319,6 +319,9 @@ export default function Page() {
             Evaluation-only prototype. This intake generates a normalized JSON blueprint for the flow:
             <span className="font-medium"> Contact center interaction accepted <span aria-hidden>&rarr;</span> CRM activity + context injection</span>.
           </p>
+          <p className="text-sm text-gray-600">
+            This intake produces a structured integration blueprint designed for both human review and AI-assisted implementation. The output is generated as structured data so it can be validated, reviewed, or consumed by automation and AI-assisted tools during implementation.
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/crm-contact-center-integration-design"
