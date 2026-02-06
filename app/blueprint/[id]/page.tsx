@@ -2,6 +2,8 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 
+const FEEDBACK_URL = "https://forms.gle/FU2wvkb9K8RPVLfU6";
+
 function formatValue(value: unknown): string {
   if (value === null || value === undefined) return "N/A";
   if (Array.isArray(value)) return value.length ? value.join(", ") : "N/A";
@@ -337,6 +339,27 @@ export default function BlueprintPage({ params }: { params: Promise<{ id: string
             </summary>
             <pre className="text-xs overflow-auto whitespace-pre-wrap text-neutral-300">{JSON.stringify(data, null, 2)}</pre>
           </details>
+        </section>
+
+        <section className="rounded-2xl border border-neutral-800 bg-neutral-900/40 p-6 space-y-4">
+          <h2 className="text-lg font-semibold">Help improve this prototype</h2>
+          <p className="text-sm text-neutral-300">
+            This is an evaluation-only prototype. If you work in RevOps, Sales Ops, or Contact Center operations, I’d love your honest feedback:
+          </p>
+          <ul className="text-sm text-neutral-300 space-y-2">
+            <li>• What looks correct?</li>
+            <li>• What looks wrong or missing?</li>
+            <li>• What would block adoption (security, trust, workflow)?</li>
+          </ul>
+          <p className="text-xs text-neutral-400">Takes ~30 seconds.</p>
+          <a
+            href={FEEDBACK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-lg bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-900 hover:opacity-90"
+          >
+            Give feedback
+          </a>
         </section>
       </div>
     </main>

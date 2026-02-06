@@ -31,7 +31,7 @@ const IntakeSchema = z
     otherContactCenterName: z.string().trim().optional(),
     agentWorkspace: AGENT_WORKSPACE_ENUM,
     //environment: z.enum(["sandbox", "demo"]).default("sandbox"),
-environment: z.enum(["sandbox", "demo"]),
+    environment: z.enum(["sandbox", "demo"]),
 
     // Step 2: trigger
     direction: z.enum(["inbound", "outbound", "both"]),
@@ -41,12 +41,10 @@ environment: z.enum(["sandbox", "demo"]),
     crmActivityObjectType: CRM_ACTIVITY_ENUM,
     subjectTemplate: z
       .string()
-      .min(5, "Subject template is required")
-     ,
+      .min(5, "Subject template is required"),
     associations: z
       .array(z.enum(["contact", "company", "deal"]))
-      .min(1, "Select at least one association")
-      ,
+      .min(1, "Select at least one association"),
 
     // Step 4: matching
     matchingStrategy: z.array(z.enum(["ani_phone_match", "external_id"])).min(1),
@@ -110,7 +108,7 @@ environment: z.enum(["sandbox", "demo"]),
       });
     }
 
-    // Regulated → enforce strict logging default
+    // Regulated &rarr; enforce strict logging default
     if (val.dataSensitivity === "regulated" && val.logging !== "no_payload_logging") {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -316,19 +314,19 @@ export default function Page() {
     <main className="min-h-screen p-6 flex justify-center bg-neutral-950 text-neutral-50">
       <div className="w-full max-w-3xl space-y-6">
         <header className="space-y-2">
-          <h1 className="text-2xl font-semibold">CRM ↔ Contact Center Intake (v1)</h1>
+          <h1 className="text-2xl font-semibold">CRM <span aria-hidden>&harr;</span> Contact Center Intake (v1)</h1>
           <p className="text-sm text-gray-600">
             Evaluation-only prototype. This intake generates a normalized JSON blueprint for the flow:
-            <span className="font-medium"> Contact center interaction accepted → CRM activity + context injection</span>.
+            <span className="font-medium"> Contact center interaction accepted <span aria-hidden>&rarr;</span> CRM activity + context injection</span>.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/crm-contact-center-integration-blueprint"
+              href="/crm-contact-center-integration-design"
               className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/70 px-4 py-2 text-xs font-medium text-neutral-100 shadow-[0_0_0_1px_rgba(255,255,255,0.04)] transition hover:border-neutral-500 hover:bg-neutral-900"
             >
               Read the guide
               <span aria-hidden className="text-neutral-400">
-                →
+                &rarr;
               </span>
             </Link>
             <div className="inline-flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-gray-100 text-gray-900">
@@ -337,25 +335,15 @@ export default function Page() {
             </div>
           </div>
         </header>
-
-        <div className="flex items-center justify-between gap-3 flex-wrap">
-          <Link
-            href="/crm-contact-center-integration-blueprint"
-            className="inline-flex items-center gap-2 rounded-full border border-neutral-800 bg-neutral-900/60 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-300 hover:text-neutral-100 hover:border-neutral-500"
-          >
-            Guide
-            <span aria-hidden className="text-neutral-500">
-              →
-            </span>
-          </Link>
+        <div className="flex items-center gap-2 flex-wrap">
           {steps.map((s, idx) => (
             <span
               key={s.title}
               className={classNames(
                 "text-xs px-3 py-1 rounded-full border",
                 idx === step
-  ? "bg-neutral-100 text-neutral-900 border-neutral-100"
-  : "bg-neutral-900 text-neutral-200 border-neutral-800"
+                  ? "bg-neutral-100 text-neutral-900 border-neutral-100"
+                  : "bg-neutral-900 text-neutral-200 border-neutral-800"
               )}
             >
               {idx + 1}. {s.title}
@@ -642,7 +630,7 @@ export default function Page() {
                 <div>
                   <label className="text-sm font-medium">Owner strategy</label>
                   <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("ownerStrategy")}>
-                    <option value="map_agent_email">Map agent email → CRM user (recommended)</option>
+                    <option value="map_agent_email">Map agent email &rarr; CRM user (recommended)</option>
                     <option value="fixed_owner">Always assign to a fixed user/queue</option>
                     <option value="unassigned">Leave unassigned</option>
                   </select>
