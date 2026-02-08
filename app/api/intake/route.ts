@@ -48,9 +48,10 @@ export async function POST(req: Request) {
       ok: true,
       message: "Thanks - intake received.",
     });
-  } catch (e: any) {
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Failed to send intake email";
     return NextResponse.json(
-      { ok: false, error: e?.message || "Failed to send intake email" },
+      { ok: false, error: message },
       { status: 500 }
     );
   }

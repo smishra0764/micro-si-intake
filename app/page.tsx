@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { FieldPath, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -18,6 +18,68 @@ const VOLUME_ENUM = z.enum(["lt_100", "100_1000", "1000_10000", "gt_10000"]);
 const LATENCY_ENUM = z.enum(["best_effort", "under_2s", "under_500ms"]);
 const SENSITIVITY_ENUM = z.enum(["low", "pii", "regulated"]);
 const LOGGING_ENUM = z.enum(["mask_pii", "no_payload_logging"]);
+const JOURNEY_INITIAL_VIEW_ENUM = z.enum([
+  "Contact summary",
+  "Open tickets/cases",
+  "Recent activities",
+  "Company/account view",
+  "Knowledge base",
+  "Custom view",
+  "Other",
+]);
+const JOURNEY_DATA_CAPTURED_ENUM = z.enum([
+  "Notes",
+  "Disposition",
+  "Reason code",
+  "Customer ID",
+  "Outcome",
+  "Other",
+]);
+const JOURNEY_POST_ARTIFACTS_ENUM = z.enum([
+  "Call recording",
+  "Transcript",
+  "Summary",
+  "Disposition",
+  "Follow-up task",
+  "Other",
+]);
+type JourneyInitialView = z.infer<typeof JOURNEY_INITIAL_VIEW_ENUM>;
+type JourneyDataCaptured = z.infer<typeof JOURNEY_DATA_CAPTURED_ENUM>;
+type JourneyPostArtifacts = z.infer<typeof JOURNEY_POST_ARTIFACTS_ENUM>;
+const ACTIVITY_CREATION_TIMING_ENUM = z.enum([
+  "on_interaction_accepted",
+  "on_interaction_completed",
+  "on_disposition_saved",
+  "when_transcript_ready",
+  "custom",
+]);
+const ACTIVITY_LOG_ATTEMPTS_ENUM = z.enum([
+  "completed_only",
+  "all_attempts",
+  "attempts_and_completed",
+]);
+const DEDUPE_SCOPE_ENUM = z.enum(["same_interaction_only", "same_customer_same_day"]);
+const EXCEPTION_NO_CONTACT_MATCH_ENUM = z.enum([
+  "create_unassigned_activity",
+  "create_activity_and_flag_for_review",
+  "skip_and_log",
+  "require_agent_input",
+]);
+const EXCEPTION_CRM_API_FAILURE_ENUM = z.enum([
+  "retry_then_dlq",
+  "retry_then_alert",
+  "skip_and_log",
+]);
+const EXCEPTION_PARTIAL_DATA_ENUM = z.enum([
+  "create_with_defaults",
+  "create_and_flag_missing_fields",
+  "skip_and_log",
+]);
+const EXCEPTION_OUT_OF_SYNC_ENUM = z.enum([
+  "daily_reconcile_report",
+  "manual_queue",
+  "ignore",
+]);
 
 const IntakeSchema = z
   .object({
@@ -37,6 +99,24 @@ const IntakeSchema = z
     direction: z.enum(["inbound", "outbound", "both"]),
     voiceOnly: z.boolean(),
 
+    // Step 2.5: interaction journey
+    journey: z.object({
+      perfectWorldNarrative: z
+        .string()
+        .trim()
+        .min(10, "Please describe the ideal interaction flow"),
+      initialAgentView: z.array(JOURNEY_INITIAL_VIEW_ENUM).optional(),
+      dataCapturedDuringInteraction: z.array(JOURNEY_DATA_CAPTURED_ENUM).optional(),
+      postInteractionArtifacts: z.array(JOURNEY_POST_ARTIFACTS_ENUM).optional(),
+    }),
+
+    // Step 3: activity timing
+    activity: z.object({
+      creationTiming: ACTIVITY_CREATION_TIMING_ENUM,
+      creationTimingNotes: z.string().trim().optional(),
+      logAttempts: ACTIVITY_LOG_ATTEMPTS_ENUM,
+    }),
+
     // Step 3: CRM activity
     crmActivityObjectType: CRM_ACTIVITY_ENUM,
     subjectTemplate: z
@@ -50,6 +130,12 @@ const IntakeSchema = z
     matchingStrategy: z.array(z.enum(["ani_phone_match", "external_id"])).min(1),
     phoneNormalization: PHONE_NORM_ENUM,
     externalIdField: z.string().trim().optional(),
+
+    // Step 4.5: dedupe decisions
+    dedupe: z.object({
+      scope: DEDUPE_SCOPE_ENUM,
+      allowMultipleEngagements: z.boolean(),
+    }),
 
     // Step 5: context injection
     contextFields: z.array(z.string()).min(1, "Select at least one context field"),
@@ -66,6 +152,14 @@ const IntakeSchema = z
     expectedVolume: VOLUME_ENUM,
     idempotencyKey: z.string().trim(),
     latencyTarget: LATENCY_ENUM,
+
+    // Step 7.5: exception handling
+    exceptions: z.object({
+      noContactMatch: EXCEPTION_NO_CONTACT_MATCH_ENUM,
+      crmApiFailure: EXCEPTION_CRM_API_FAILURE_ENUM,
+      partialData: EXCEPTION_PARTIAL_DATA_ENUM,
+      outOfSync: EXCEPTION_OUT_OF_SYNC_ENUM,
+    }),
 
     // Step 8: security
     dataSensitivity: SENSITIVITY_ENUM,
@@ -129,6 +223,31 @@ const CONTEXT_FIELD_OPTIONS: Array<{ id: string; label: string }> = [
   { id: "stats.openDeals", label: "Open deals count" },
   { id: "stats.openTickets", label: "Open tickets/cases count" },
 ];
+const JOURNEY_INITIAL_VIEW_OPTIONS: Array<{ id: JourneyInitialView; label: string }> = [
+  { id: "Contact summary", label: "Contact summary" },
+  { id: "Open tickets/cases", label: "Open tickets/cases" },
+  { id: "Recent activities", label: "Recent activities" },
+  { id: "Company/account view", label: "Company/account view" },
+  { id: "Knowledge base", label: "Knowledge base" },
+  { id: "Custom view", label: "Custom view" },
+  { id: "Other", label: "Other" },
+];
+const JOURNEY_DATA_CAPTURED_OPTIONS: Array<{ id: JourneyDataCaptured; label: string }> = [
+  { id: "Notes", label: "Notes" },
+  { id: "Disposition", label: "Disposition" },
+  { id: "Reason code", label: "Reason code" },
+  { id: "Customer ID", label: "Customer ID" },
+  { id: "Outcome", label: "Outcome" },
+  { id: "Other", label: "Other" },
+];
+const JOURNEY_POST_ARTIFACTS_OPTIONS: Array<{ id: JourneyPostArtifacts; label: string }> = [
+  { id: "Call recording", label: "Call recording" },
+  { id: "Transcript", label: "Transcript" },
+  { id: "Summary", label: "Summary" },
+  { id: "Disposition", label: "Disposition" },
+  { id: "Follow-up task", label: "Follow-up task" },
+  { id: "Other", label: "Other" },
+];
 
 function classNames(...xs: Array<string | false | null | undefined>) {
   return xs.filter(Boolean).join(" ");
@@ -160,6 +279,17 @@ function buildNormalizedIntake(input: IntakeForm) {
       interactionType,
       direction: input.direction,
     },
+    journey: {
+      perfectWorldNarrative: input.journey.perfectWorldNarrative,
+      initialAgentView: input.journey.initialAgentView ?? [],
+      dataCapturedDuringInteraction: input.journey.dataCapturedDuringInteraction ?? [],
+      postInteractionArtifacts: input.journey.postInteractionArtifacts ?? [],
+    },
+    activity: {
+      creationTiming: input.activity.creationTiming,
+      creationTimingNotes: input.activity.creationTimingNotes ?? null,
+      logAttempts: input.activity.logAttempts,
+    },
     crmActivity: {
       objectType: input.crmActivityObjectType,
       subjectTemplate: input.subjectTemplate,
@@ -171,6 +301,10 @@ function buildNormalizedIntake(input: IntakeForm) {
       externalIdField: input.matchingStrategy.includes("external_id")
         ? input.externalIdField ?? null
         : null,
+    },
+    dedupe: {
+      scope: input.dedupe.scope,
+      allowMultipleEngagements: input.dedupe.allowMultipleEngagements,
     },
     contextInjection: {
       fields: input.contextFields,
@@ -187,6 +321,12 @@ function buildNormalizedIntake(input: IntakeForm) {
       expectedVolume: input.expectedVolume,
       idempotencyKey: input.idempotencyKey,
       latencyTarget: input.latencyTarget,
+    },
+    exceptions: {
+      noContactMatch: input.exceptions.noContactMatch,
+      crmApiFailure: input.exceptions.crmApiFailure,
+      partialData: input.exceptions.partialData,
+      outOfSync: input.exceptions.outOfSync,
     },
     security: {
       dataSensitivity: input.dataSensitivity,
@@ -225,6 +365,17 @@ export default function Page() {
       environment: "sandbox",
       direction: "inbound",
       voiceOnly: true,
+      journey: {
+        perfectWorldNarrative: "",
+        initialAgentView: [],
+        dataCapturedDuringInteraction: [],
+        postInteractionArtifacts: [],
+      },
+      activity: {
+        creationTiming: "on_interaction_completed",
+        creationTimingNotes: "",
+        logAttempts: "attempts_and_completed",
+      },
       crmActivityObjectType: "engagement",
       subjectTemplate: "Interaction from {{ani}} to {{dnis}}",
       associations: ["contact"],
@@ -232,12 +383,22 @@ export default function Page() {
       phoneNormalization: "us_e164",
       contextFields: ["contact.fullName", "company.name", "contact.email", "stats.openDeals"],
       contextPlacement: "interaction_tab",
+      dedupe: {
+        scope: "same_interaction_only",
+        allowMultipleEngagements: true,
+      },
       ownerStrategy: "map_agent_email",
       storeCallId: true,
       callIdField: "interaction_id",
       expectedVolume: "100_1000",
       idempotencyKey: "interactionId",
       latencyTarget: "under_2s",
+      exceptions: {
+        noContactMatch: "create_activity_and_flag_for_review",
+        crmApiFailure: "retry_then_dlq",
+        partialData: "create_and_flag_missing_fields",
+        outOfSync: "daily_reconcile_report",
+      },
       dataSensitivity: "pii",
       logging: "mask_pii",
     },
@@ -251,21 +412,24 @@ export default function Page() {
     return parsed.success ? buildNormalizedIntake(parsed.data) : null;
   }, [values]);
 
-  const steps = [
+  const steps: Array<{ title: string; fields: FieldPath<IntakeForm>[] }> = [
     { title: "Systems", fields: ["crm", "otherCrmName", "contactCenter", "otherContactCenterName", "agentWorkspace", "environment"] as const },
     { title: "Trigger", fields: ["direction", "voiceOnly"] as const },
+    { title: "Interaction Journey", fields: ["journey.perfectWorldNarrative"] as const },
+    { title: "Activity Timing", fields: ["activity.creationTiming", "activity.logAttempts", "activity.creationTimingNotes"] as const },
     { title: "CRM Activity", fields: ["crmActivityObjectType", "subjectTemplate", "associations"] as const },
-    { title: "Matching", fields: ["matchingStrategy", "phoneNormalization", "externalIdField"] as const },
+    { title: "Matching & Dedupe", fields: ["matchingStrategy", "phoneNormalization", "externalIdField", "dedupe.scope", "dedupe.allowMultipleEngagements"] as const },
     { title: "Context Injection", fields: ["contextFields", "customContextFields", "contextPlacement"] as const },
     { title: "Ownership & Audit", fields: ["ownerStrategy", "fixedOwner", "storeCallId", "callIdField"] as const },
     { title: "Reliability", fields: ["expectedVolume", "idempotencyKey", "latencyTarget"] as const },
+    { title: "Exception Handling", fields: ["exceptions.noContactMatch", "exceptions.crmApiFailure", "exceptions.partialData", "exceptions.outOfSync"] as const },
     { title: "Security", fields: ["dataSensitivity", "logging"] as const },
     { title: "Review & Submit", fields: [] as const },
   ];
 
   async function next() {
     const current = steps[step];
-    const ok = await form.trigger(current.fields as any, { shouldFocus: true });
+    const ok = await form.trigger(current.fields, { shouldFocus: true });
     if (!ok) return;
     setStep((s) => Math.min(s + 1, steps.length - 1));
   }
@@ -304,9 +468,10 @@ export default function Page() {
       setServerMsg(data?.message || "Submitted.");
       setStep(steps.length - 1);
       router.push(`/blueprint/${id}`);
-    } catch (e: any) {
+    } catch (e: unknown) {
       setSubmitState("error");
-      setServerMsg(e?.message || "Error submitting.");
+      const message = e instanceof Error ? e.message : "Error submitting.";
+      setServerMsg(message);
     }
   }
 
@@ -470,6 +635,132 @@ export default function Page() {
 
           {step === 2 && (
             <section className="space-y-4">
+              <h2 className="text-lg font-medium">Interaction journey (workflow intent)</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium">
+                    In a perfect world, what happens when a call/chat comes in? What does the agent see first, then next?
+                  </label>
+                  <textarea
+                    rows={4}
+                    className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800"
+                    placeholder="Describe the ideal interaction flow..."
+                    {...form.register("journey.perfectWorldNarrative")}
+                  />
+                  {form.formState.errors.journey?.perfectWorldNarrative?.message && (
+                    <p className="text-xs text-red-600 mt-1">{form.formState.errors.journey?.perfectWorldNarrative?.message}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Initial agent view</label>
+                  <div className="mt-2 grid md:grid-cols-2 gap-2">
+                    {JOURNEY_INITIAL_VIEW_OPTIONS.map((option) => (
+                      <label key={option.id} className="text-sm flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={values.journey?.initialAgentView?.includes(option.id)}
+                          onChange={(e) => {
+                            const next = new Set(values.journey?.initialAgentView || []);
+                            if (e.target.checked) next.add(option.id);
+                            else next.delete(option.id);
+                            form.setValue("journey.initialAgentView", Array.from(next), { shouldValidate: true });
+                          }}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Data captured during interaction</label>
+                  <div className="mt-2 grid md:grid-cols-2 gap-2">
+                    {JOURNEY_DATA_CAPTURED_OPTIONS.map((option) => (
+                      <label key={option.id} className="text-sm flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={values.journey?.dataCapturedDuringInteraction?.includes(option.id)}
+                          onChange={(e) => {
+                            const next = new Set(values.journey?.dataCapturedDuringInteraction || []);
+                            if (e.target.checked) next.add(option.id);
+                            else next.delete(option.id);
+                            form.setValue("journey.dataCapturedDuringInteraction", Array.from(next), { shouldValidate: true });
+                          }}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Post-interaction artifacts</label>
+                  <div className="mt-2 grid md:grid-cols-2 gap-2">
+                    {JOURNEY_POST_ARTIFACTS_OPTIONS.map((option) => (
+                      <label key={option.id} className="text-sm flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={values.journey?.postInteractionArtifacts?.includes(option.id)}
+                          onChange={(e) => {
+                            const next = new Set(values.journey?.postInteractionArtifacts || []);
+                            if (e.target.checked) next.add(option.id);
+                            else next.delete(option.id);
+                            form.setValue("journey.postInteractionArtifacts", Array.from(next), { shouldValidate: true });
+                          }}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {step === 3 && (
+            <section className="space-y-4">
+              <h2 className="text-lg font-medium">When should the CRM log the engagement/activity?</h2>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Activity creation timing</label>
+                  <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("activity.creationTiming")}>
+                    <option value="on_interaction_accepted">On interaction accepted</option>
+                    <option value="on_interaction_completed">After interaction completed</option>
+                    <option value="on_disposition_saved">After disposition saved</option>
+                    <option value="when_transcript_ready">When transcript is ready</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">What gets logged</label>
+                  <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("activity.logAttempts")}>
+                    <option value="completed_only">Completed interactions only</option>
+                    <option value="all_attempts">All attempts</option>
+                    <option value="attempts_and_completed">Attempts and completed</option>
+                  </select>
+                </div>
+              </div>
+
+              {values.activity?.creationTiming === "custom" && (
+                <div>
+                  <label className="text-sm font-medium">Custom timing notes (optional)</label>
+                  <textarea
+                    rows={3}
+                    className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800"
+                    placeholder="Describe the timing rule..."
+                    {...form.register("activity.creationTimingNotes")}
+                  />
+                </div>
+              )}
+            </section>
+          )}
+
+          {step === 4 && (
+            <section className="space-y-4">
               <h2 className="text-lg font-medium">CRM Activity</h2>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -506,42 +797,46 @@ export default function Page() {
                             const next = new Set(values.associations || []);
                             if (e.target.checked) next.add(a);
                             else next.delete(a);
-                            form.setValue("associations", Array.from(next) as any, { shouldValidate: true });
+                            const nextValues = Array.from(next) as IntakeForm["associations"];
+                            form.setValue("associations", nextValues, { shouldValidate: true });
                           }}
                         />
                         {a === "contact" ? "Contact" : a === "company" ? "Company/Account" : "Deal/Opportunity"}
                       </label>
                     ))}
                   </div>
-                  {form.formState.errors.associations && (
-                    <p className="text-xs text-red-600 mt-1">{form.formState.errors.associations.message as any}</p>
+                  {form.formState.errors.associations?.message && (
+                    <p className="text-xs text-red-600 mt-1">{form.formState.errors.associations.message}</p>
                   )}
                 </div>
               </div>
             </section>
           )}
 
-          {step === 3 && (
+          {step === 5 && (
             <section className="space-y-4">
-              <h2 className="text-lg font-medium">Matching</h2>
+              <h2 className="text-lg font-medium">Matching & Dedupe</h2>
 
               <div className="space-y-3">
-                <label className="text-sm font-medium">How should we identify the CRM contact?</label>
+                <label className="text-sm font-medium">Customer matching (how should we identify the CRM contact?)</label>
 
                 <div className="flex flex-col gap-2">
-                  {[
-                    { id: "ani_phone_match", label: "Phone number match (ANI)" },
-                    { id: "external_id", label: "External customer ID from context" },
-                  ].map((o) => (
+                  {(
+                    [
+                      { id: "ani_phone_match", label: "Phone number match (ANI)" },
+                      { id: "external_id", label: "External customer ID from context" },
+                    ] as const
+                  ).map((o) => (
                     <label key={o.id} className="text-sm flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={values.matchingStrategy?.includes(o.id as any)}
+                        checked={values.matchingStrategy?.includes(o.id)}
                         onChange={(e) => {
                           const next = new Set(values.matchingStrategy || []);
-                          if (e.target.checked) next.add(o.id as any);
-                          else next.delete(o.id as any);
-                          form.setValue("matchingStrategy", Array.from(next) as any, { shouldValidate: true });
+                          if (e.target.checked) next.add(o.id);
+                          else next.delete(o.id);
+                          const nextValues = Array.from(next) as IntakeForm["matchingStrategy"];
+                          form.setValue("matchingStrategy", nextValues, { shouldValidate: true });
                         }}
                       />
                       {o.label}
@@ -549,8 +844,8 @@ export default function Page() {
                   ))}
                 </div>
 
-                {form.formState.errors.matchingStrategy && (
-                  <p className="text-xs text-red-600 mt-1">{form.formState.errors.matchingStrategy.message as any}</p>
+                {form.formState.errors.matchingStrategy?.message && (
+                  <p className="text-xs text-red-600 mt-1">{form.formState.errors.matchingStrategy.message}</p>
                 )}
               </div>
 
@@ -574,10 +869,33 @@ export default function Page() {
                   )}
                 </div>
               )}
+
+              <div className="space-y-3 pt-2">
+                <label className="text-sm font-medium">Duplicate prevention (interactionId/callId)</label>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Dedupe scope</label>
+                    <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("dedupe.scope")}>
+                      <option value="same_interaction_only">Same interaction only</option>
+                      <option value="same_customer_same_day">Same customer, same day (advanced)</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 mt-6">
+                    <input
+                      type="checkbox"
+                      checked={values.dedupe?.allowMultipleEngagements}
+                      onChange={(e) => form.setValue("dedupe.allowMultipleEngagements", e.target.checked)}
+                    />
+                    <span className="text-sm">
+                      Allow multiple legitimate engagements for separate lifecycle events (e.g., attempts + completed)
+                    </span>
+                  </div>
+                </div>
+              </div>
             </section>
           )}
 
-          {step === 4 && (
+          {step === 6 && (
             <section className="space-y-4">
               <h2 className="text-lg font-medium">Context Injection</h2>
 
@@ -600,9 +918,9 @@ export default function Page() {
                     </label>
                   ))}
                 </div>
-                {form.formState.errors.contextFields && (
-                  <p className="text-xs text-red-600 mt-1">{form.formState.errors.contextFields.message as any}</p>
-                )}
+                  {form.formState.errors.contextFields?.message && (
+                    <p className="text-xs text-red-600 mt-1">{form.formState.errors.contextFields.message}</p>
+                  )}
               </div>
 
               <div>
@@ -625,7 +943,7 @@ export default function Page() {
             </section>
           )}
 
-          {step === 5 && (
+          {step === 7 && (
             <section className="space-y-4">
               <h2 className="text-lg font-medium">Ownership & Audit</h2>
 
@@ -667,7 +985,7 @@ export default function Page() {
             </section>
           )}
 
-          {step === 6 && (
+          {step === 8 && (
             <section className="space-y-4">
               <h2 className="text-lg font-medium">Reliability</h2>
 
@@ -703,7 +1021,54 @@ export default function Page() {
             </section>
           )}
 
-          {step === 7 && (
+          {step === 9 && (
+            <section className="space-y-4">
+              <h2 className="text-lg font-medium">Exception handling (what happens when things go wrong?)</h2>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">No contact match</label>
+                  <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("exceptions.noContactMatch")}>
+                    <option value="create_unassigned_activity">Create unassigned activity</option>
+                    <option value="create_activity_and_flag_for_review">Create activity and flag for review</option>
+                    <option value="skip_and_log">Skip and log</option>
+                    <option value="require_agent_input">Require agent input</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">CRM API failure</label>
+                  <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("exceptions.crmApiFailure")}>
+                    <option value="retry_then_dlq">Retry then DLQ</option>
+                    <option value="retry_then_alert">Retry then alert</option>
+                    <option value="skip_and_log">Skip and log</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Partial data</label>
+                  <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("exceptions.partialData")}>
+                    <option value="create_with_defaults">Create with defaults</option>
+                    <option value="create_and_flag_missing_fields">Create and flag missing fields</option>
+                    <option value="skip_and_log">Skip and log</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Out of sync</label>
+                  <select className="mt-1 w-full border rounded-lg p-2 bg-neutral-900 text-neutral-100 border-neutral-800" {...form.register("exceptions.outOfSync")}>
+                    <option value="daily_reconcile_report">Daily reconcile report</option>
+                    <option value="manual_queue">Manual queue</option>
+                    <option value="ignore">Ignore</option>
+                  </select>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-600">These are design decisions; implementation may vary.</p>
+            </section>
+          )}
+
+          {step === 10 && (
             <section className="space-y-4">
               <h2 className="text-lg font-medium">Security</h2>
 
@@ -740,7 +1105,7 @@ export default function Page() {
             </section>
           )}
 
-          {step === 8 && (
+          {step === 11 && (
             <section className="space-y-4">
               <h2 className="text-lg font-medium">Review & Submit</h2>
 

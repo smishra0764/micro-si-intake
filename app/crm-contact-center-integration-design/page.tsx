@@ -141,6 +141,17 @@ export default function CrmContactCenterIntegrationDesignPage() {
               <p>Data sensitivity classification and logging choices (masking vs no payload logging).</p>
             </div>
           </div>
+          <div className="space-y-2 text-sm text-neutral-300">
+            <p>
+              Activity timing is a deliberate choice: some teams log on acceptance, others after completion, disposition, or once a transcript is ready. The blueprint captures the intended timing so downstream automation aligns with operations.
+            </p>
+            <p>
+              Duplicate prevention is separate from legitimate multiple engagements. Retries or replays should be deduped, while attempts and completed interactions can be captured as distinct lifecycle events if desired.
+            </p>
+            <p>
+              Exception handling is explicit, including what happens when no match is found, APIs fail, or data is incomplete. These decisions define intended behavior; implementation may vary.
+            </p>
+          </div>
         </section>
 
         <section className="space-y-3 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5">
